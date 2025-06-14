@@ -15,13 +15,13 @@ import type {
 export const INSECURE_PROTOCOLS_LIST: Array<InsecureProtocols> = ["http", "ws"];
 
 export const INSECURE_PROTOCOLS_SET: Set<InsecureProtocols> = new Set(
-  INSECURE_PROTOCOLS_LIST,
+  INSECURE_PROTOCOLS_LIST
 );
 
 export const SECURE_PROTOCOLS_LIST: Array<SecureProtocols> = ["https", "wss"];
 
 export const SECURE_PROTOCOLS_SET: Set<SecureProtocols> = new Set(
-  SECURE_PROTOCOLS_LIST,
+  SECURE_PROTOCOLS_LIST
 );
 
 export const REQUEST_METHODS_LIST: Array<RequestMethod> = [
@@ -35,7 +35,7 @@ export const REQUEST_METHODS_LIST: Array<RequestMethod> = [
 ];
 
 export const REQUEST_METHODS_SET: Set<RequestMethod> = new Set(
-  REQUEST_METHODS_LIST,
+  REQUEST_METHODS_LIST
 );
 
 export type RequestMethodWithBody = Exclude<RequestMethod, "GET" | "HEAD">;
@@ -61,7 +61,7 @@ export const CONTENT_TYPE_CATEGORIES_LIST: Array<ContentTypeCategories> = [
 ];
 
 export const CONTENT_TYPE_CATEGORIES_SET: Set<ContentTypeCategories> = new Set(
-  CONTENT_TYPE_CATEGORIES_LIST,
+  CONTENT_TYPE_CATEGORIES_LIST
 );
 
 export const TEXT_CONTENT_TYPES_LIST: Array<TextContentTypes> = [
@@ -118,26 +118,26 @@ export const CONTENT_TYPES_LIST: Array<ContentTypes> = [
 ];
 
 export const TEXT_CONTENT_TYPES_SET: Set<TextContentTypes> = new Set(
-  TEXT_CONTENT_TYPES_LIST,
+  TEXT_CONTENT_TYPES_LIST
 );
 
 export const APPLICATION_CONTENT_TYPES_SET: Set<ApplicationContentTypes> =
   new Set(APPLICATION_CONTENT_TYPES_LIST);
 
 export const IMAGE_CONTENT_TYPES_SET: Set<ImageContentTypes> = new Set(
-  IMAGE_CONTENT_TYPES_LIST,
+  IMAGE_CONTENT_TYPES_LIST
 );
 
 export const AUDIO_CONTENT_TYPES_SET: Set<AudioContentTypes> = new Set(
-  AUDIO_CONTENT_TYPES_LIST,
+  AUDIO_CONTENT_TYPES_LIST
 );
 
 export const VIDEO_CONTENT_TYPES_SET: Set<VideoContentTypes> = new Set(
-  VIDEO_CONTENT_TYPES_LIST,
+  VIDEO_CONTENT_TYPES_LIST
 );
 
 export const MULTIPART_CONTENT_TYPES_SET: Set<MultipartContentTypes> = new Set(
-  MULTIPART_CONTENT_TYPES_LIST,
+  MULTIPART_CONTENT_TYPES_LIST
 );
 
 export const CONTENT_TYPES_SET: Set<ContentTypes> = new Set(CONTENT_TYPES_LIST);
@@ -151,7 +151,7 @@ export const CATEGORIZED_CONTENT_TYPES = {
   multipart: MULTIPART_CONTENT_TYPES_SET,
 };
 
-export const EXT_CONTENT_TYPE_MAP = new Map([
+export const EXT_CONTENT_TYPE_MAP: Map<string, string> = new Map([
   ["html", "text/html"],
   ["xhtml", "text/html"],
   ["htm", "text/html"],
@@ -172,10 +172,3 @@ export const EXT_CONTENT_TYPE_MAP = new Map([
   ["mp4", "video/mp4"],
   ["webm", "video/webm"],
 ]);
-
-export const DEFAULT_INDEX_FILES = [
-  "index.html",
-  "index.xhtml",
-  "index.htm",
-  "index.xhtm",
-];

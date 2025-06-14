@@ -1,7 +1,7 @@
 import { type JWT, JWTStatus, type JWTVerifyOptions } from "./jwt.ts";
 import { StatusCode } from "./status/code.ts";
 import type { ProcessedRequest } from "./processed-request.ts";
-import type { Handler } from "./types.ts";
+import type { Handler, HandlerResult } from "./types.ts";
 import type { CookieValue } from "./util/cookie.ts";
 
 export type UsernamePasswordOptions = {
@@ -9,18 +9,18 @@ export type UsernamePasswordOptions = {
   password: string;
 };
 
+export type AuthBasicCredentialFn<UserData> = (
+  { username, password }: UsernamePasswordOptions,
+  pr: ProcessedRequest & UserData
+) => HandlerResult;
+
 export type AuthBasicParams<UserData> = {
   credentials:
     | {
         username: string;
         password: string;
       }
-    | {
-        (
-          { username, password }: UsernamePasswordOptions,
-          pr: ProcessedRequest & UserData
-        ): Response | Promise<Response> | void;
-      };
+    | AuthBasicCredentialFn<UserData>;
   donotReturn?: boolean;
 };
 
@@ -58,21 +58,31 @@ function basic<UserData extends Record<string, unknown>>(
   };
 }
 
-export type AuthApiKeyParams = {
-  key: string;
+export type AuthApiKeyCredentialFn<UserData> = (
+  key: string,
+  pr: ProcessedRequest & UserData
+) => HandlerResult;
+
+export type AuthApiKeyParams<UserData> = {
+  key: string | AuthApiKeyCredentialFn<UserData>;
   donotReturn?: boolean;
 };
 
 function apiKey<UserData extends Record<string, unknown>>(
-  options: AuthApiKeyParams,
+  options: AuthApiKeyParams<UserData>,
   status?: number
 ): Handler<UserData> {
   status = status || StatusCode.Unauthorized;
   const key = options.key;
   const donotReturn = options.donotReturn;
-  return function (pr: ProcessedRequest) {
+  const keyIsAFunction = typeof key === "function";
+  return function (pr: ProcessedRequest & UserData) {
     const xApiKeyHeader = pr.request.headers.get("X-API-Key");
-    if (xApiKeyHeader && xApiKeyHeader == key) {
+    if (xApiKeyHeader && keyIsAFunction) {
+      const response = key(xApiKeyHeader, pr);
+      if (response) return response;
+      return;
+    } else if (xApiKeyHeader && xApiKeyHeader == key) {
       return;
     } else if (donotReturn) {
       pr.status(status);
@@ -82,10 +92,13 @@ function apiKey<UserData extends Record<string, unknown>>(
   };
 }
 
+export type AuthBearerTokenFn = (
+  token: string,
+  pr: ProcessedRequest
+) => boolean | Promise<boolean>;
+
 export type AuthBearerTokenParams = {
-  token:
-    | string
-    | { (token: string, pr: ProcessedRequest): boolean | Promise<boolean> };
+  token: string | AuthBearerTokenFn;
   scheme?: string | "Bearer";
   donotReturn?: boolean;
 };
@@ -121,13 +134,14 @@ function bearerToken<UserData extends Record<string, unknown>>(
   };
 }
 
+export type AuthJsonWebTokenFn<UserData> = (
+  payload: Record<string, unknown>,
+  pr: ProcessedRequest & UserData
+) => boolean | Promise<boolean>;
+
 export type AuthJsonWebTokenParams<UserData extends Record<string, unknown>> = {
   jwt: JWT;
-  payload?: {
-    (payload: Record<string, unknown>, pr: ProcessedRequest & UserData):
-      | boolean
-      | Promise<boolean>;
-  };
+  payload?: AuthJsonWebTokenFn<UserData>;
   scheme?: string | "Bearer";
   donotReturn?: boolean;
 };
@@ -147,7 +161,7 @@ function jsonwebtoken<UserData extends Record<string, unknown>>(
       const [hScheme, hToken] = authorizationHeader.split(" ").filter(Boolean);
       const schemesMatch = hScheme.toLowerCase() === scheme;
       if (schemesMatch) {
-        const verifyOptions = {
+        const verifyOptions: JWTVerifyOptions = {
           expLeeway: options.expLeeway,
           nbfLeeway: options.nbfLeeway,
           audience: options.audience,
@@ -190,15 +204,14 @@ function jsonwebtoken<UserData extends Record<string, unknown>>(
   };
 }
 
+export type AuthCookieFn<UserData> = (
+  cookie: CookieValue,
+  pr: ProcessedRequest & UserData
+) => boolean | Promise<boolean>;
+
 export type AuthCookieParams<UserData extends Record<string, unknown>> = {
   name: string;
-  cookie:
-    | CookieValue
-    | {
-        (cookie: CookieValue, pr: ProcessedRequest & UserData):
-          | boolean
-          | Promise<boolean>;
-      };
+  cookie: CookieValue | AuthCookieFn<UserData>;
   donotReturn?: boolean;
 };
 

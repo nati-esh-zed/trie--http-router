@@ -1,11 +1,14 @@
 import type { ProcessedRequest } from "./processed-request.ts";
+import type { Handler } from "./types.ts";
 import {
   parseCookieFromHeader,
   type ParseCookieOptions,
 } from "./util/cookie.ts";
 import { defaultCookieDecoder } from "./util/cookie.ts";
 
-function cookie(options?: ParseCookieOptions) {
+function cookie<UserData extends Record<string, unknown>>(
+  options?: ParseCookieOptions
+): Handler<UserData> {
   const secret = options?.secret;
   const decode = options?.decode || defaultCookieDecoder;
   return function (pr: ProcessedRequest) {

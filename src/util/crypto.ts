@@ -1,14 +1,13 @@
-import { encodeHex } from "jsr:@std/encoding/hex";
+import { encodeHex } from "jsr:@std/encoding@1.0.5/hex";
 import { brotliCompressSync, type BrotliOptions } from "node:zlib";
 
 export function hash(
   data: string | Uint8Array | BufferSource,
-  algorithm?: AlgorithmIdentifier | "SHA-256",
+  algorithm?: AlgorithmIdentifier | "SHA-256"
 ) {
   algorithm = algorithm || "SHA-256";
-  const buffer = typeof data === "string"
-    ? new TextEncoder().encode(data)
-    : data;
+  const buffer =
+    typeof data === "string" ? new TextEncoder().encode(data) : data;
   const hashBuffer = crypto.subtle.digest(algorithm, buffer);
   return hashBuffer;
 }
@@ -23,7 +22,7 @@ export async function hashString(text: string) {
 export function compress(
   data: Uint8Array,
   format: CompressionFormat | "brotli",
-  options?: BrotliOptions,
+  options?: BrotliOptions
 ) {
   if (format === "brotli") {
     return new Promise<Uint8Array>((resolve) =>

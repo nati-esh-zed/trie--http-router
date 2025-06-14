@@ -1,6 +1,7 @@
 import { REQUEST_METHODS_LIST } from "./defs.ts";
 import { RouterError, StatusCode } from "./index.ts";
 import type { ProcessedRequest } from "./processed-request.ts";
+import type { Handler } from "./types.ts";
 
 export interface LimitRateParams {
   maxTokens: number;
@@ -9,7 +10,9 @@ export interface LimitRateParams {
   cleanupMethod?: "clear" | "max-tokens";
 }
 
-export function rateLimit(params: LimitRateParams) {
+export function rateLimit<UserData extends Record<string, unknown>>(
+  params: LimitRateParams
+): Handler<UserData> {
   const { maxTokens, refillRate, cleanupInterval, cleanupMethod } = params;
   const rates = new Map<string, { tokens: number; lastRefill: number }>();
   // latest tokens calculator function
@@ -82,7 +85,9 @@ export interface AccessControlParams {
   exposeHeaders?: Array<string>;
 }
 
-export function accessControl(options: AccessControlParams) {
+export function accessControl<UserData extends Record<string, unknown>>(
+  options: AccessControlParams
+): Handler<UserData> {
   const methods = (options.allowMethods || REQUEST_METHODS_LIST).join(", ");
   const methodsSet = new Set(options.allowMethods || REQUEST_METHODS_LIST);
   const headers = options.allowHeaders && options.allowHeaders.join(", ");

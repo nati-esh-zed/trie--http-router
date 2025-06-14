@@ -31,7 +31,7 @@ export class ProcessedRequest {
   handleCount = 0;
   fallbackCount = 0;
   catchCount = 0;
-  headers = new Headers();
+  headers: Headers = new Headers();
   statusCode = 0;
   error?: Error | HttpError;
 
@@ -137,7 +137,7 @@ export class ProcessedRequest {
     return this;
   }
 
-  end(statusCode?: StatusCode | null, noStatusText?: boolean) {
+  end(statusCode?: StatusCode | null, noStatusText?: boolean): Response {
     const status = (this.statusCode = statusCode || this.statusCode || 200);
     const statusText = StatusText.get(status);
     const headers = this.headers;
@@ -153,7 +153,11 @@ export class ProcessedRequest {
     });
   }
 
-  send(bytes?: BodyInit, statusCode?: StatusCode, contentType?: ContentTypes) {
+  send(
+    bytes?: BodyInit,
+    statusCode?: StatusCode,
+    contentType?: ContentTypes
+  ): Response {
     const status = (this.statusCode = statusCode || this.statusCode || 200);
     const statusText = StatusText.get(status);
     const headers = this.headers;
@@ -161,7 +165,11 @@ export class ProcessedRequest {
     return new Response(bytes, { headers, status, statusText });
   }
 
-  text(text?: string, statusCode?: StatusCode, contentType?: ContentTypes) {
+  text(
+    text?: string,
+    statusCode?: StatusCode,
+    contentType?: ContentTypes
+  ): Response {
     const status = (this.statusCode = statusCode || this.statusCode || 200);
     const statusText = StatusText.get(status);
     const headers = this.headers;
@@ -169,7 +177,11 @@ export class ProcessedRequest {
     return new Response(text, { headers, status, statusText });
   }
 
-  html(html?: string, statusCode?: StatusCode, contentType?: ContentTypes) {
+  html(
+    html?: string,
+    statusCode?: StatusCode,
+    contentType?: ContentTypes
+  ): Response {
     const status = (this.statusCode = statusCode || this.statusCode || 200);
     const statusText = StatusText.get(status);
     const headers = this.headers;
@@ -177,7 +189,11 @@ export class ProcessedRequest {
     return new Response(html, { headers, status, statusText });
   }
 
-  json(obj?: unknown, statusCode?: StatusCode, contentType?: ContentTypes) {
+  json(
+    obj?: unknown,
+    statusCode?: StatusCode,
+    contentType?: ContentTypes
+  ): Response {
     const status = (this.statusCode = statusCode || this.statusCode || 200);
     const statusText = StatusText.get(status);
     const headers = this.headers;
@@ -201,13 +217,13 @@ export class ProcessedRequest {
     return this.renderEngine.render(filePath, this, locals);
   }
 
-  redirect(toLocation: string, status?: number | 301 | StatusCode3) {
+  redirect(toLocation: string, status?: number | 301 | StatusCode3): Response {
     status = status || StatusCode.MovedPermanently;
     this.headers.append("Location", toLocation);
     return this.end(status);
   }
 
-  forward(toLocation: string, status?: number | 302) {
+  forward(toLocation: string, status?: number | 302): Response {
     status = status || StatusCode.Found;
     this.headers.append("Location", toLocation);
     return this.end(status);

@@ -1,17 +1,16 @@
 {
   "name": "@trie/http-router",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "license": "MIT",
+  "author": "Natnael",
   "exports": {
     ".": "./mod.ts",
     "./engines/render": "./src/engines/render/index.ts"
   },
-  "author": "Natnael",
+  "nodeModulesDir": "auto",
   "fmt": {
-    "files": {
-      "include": ["src/", "test/"],
-      "exclude": ["dist/"]
-    },
+    "include": ["src/", "test/"],
+    "exclude": ["dist/"],
     "options": {
       "lineWidth": 80,
       "indentWidth": 2,
@@ -22,10 +21,8 @@
     }
   },
   "lint": {
-    "files": {
-      "include": ["src/"],
-      "exclude": ["dist/"]
-    }
+    "include": ["src/"],
+    "exclude": ["dist/"]
   },
   "compilerOptions": {
     "lib": ["dom", "deno.ns"],

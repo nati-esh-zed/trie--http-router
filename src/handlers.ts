@@ -3,6 +3,7 @@ import { EXT_CONTENT_TYPE_MAP } from "./defs.ts";
 import { compress } from "./util/crypto.ts";
 import type { ProcessedRequest } from "./processed-request.ts";
 import { StatusCode } from "./index.ts";
+import type { Handler } from "./types.ts";
 
 export type HandleStaticFilesOptions = {
   path?: string;
@@ -14,7 +15,9 @@ export type HandleStaticFilesOptions = {
   compressionTreshold?: number;
 };
 
-export function staticFiles(options?: HandleStaticFilesOptions) {
+export function staticFiles<UserData extends Record<string, unknown>>(
+  options?: HandleStaticFilesOptions
+): Handler<UserData> {
   const cache = new Map();
   const rootPath = options?.path || "./public";
   const indexFiles = options?.indexFiles;
@@ -91,8 +94,8 @@ export function staticFiles(options?: HandleStaticFilesOptions) {
       fileContent = Deno.readFileSync(filePath);
       const fileExt = fileExtension(filePath);
       const mtime = fileStats.mtime;
-      contentType = EXT_CONTENT_TYPE_MAP.get(fileExt) ||
-        "application/octet-stream";
+      contentType =
+        EXT_CONTENT_TYPE_MAP.get(fileExt) || "application/octet-stream";
       eTag = useETag && `"${fileStats.size}-${mtime?.getTime()}"`;
       // cacheControl = cacheFiles
       //   ? "public, max-age=31536000, immutable"
