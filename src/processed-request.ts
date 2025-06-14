@@ -14,6 +14,7 @@ import {
 import type {
   Content,
   ContentTypes,
+  HandlerResult,
   RequestMethod,
   SecureProtocols,
 } from "./types.ts";
@@ -192,21 +193,12 @@ export class ProcessedRequest {
     filePath: string,
     locals?: Record<string, unknown>,
     statusCode?: StatusCode
-  ) {
+  ): HandlerResult {
     if (this.renderEngine == null) {
       throw new RouterError("render engine not set");
     }
-    const html = this.renderEngine.render(filePath, locals);
-    const headers = this.headers;
-    if (html != null) {
-      headers.append("Content-Type", "text/html; charset=UTF-8");
-      const status = (this.statusCode = statusCode || this.statusCode || 200);
-      const statusText = StatusText.get(status);
-      return new Response(html, { headers, status, statusText });
-    } else {
-      this.statusCode = StatusCode.NotFound;
-      // return new Response(statusText, { headers, status, statusText });
-    }
+    this.statusCode = this.statusCode = statusCode || this.statusCode || 200;
+    return this.renderEngine.render(filePath, this, locals);
   }
 
   redirect(toLocation: string, status?: number | 301 | StatusCode3) {

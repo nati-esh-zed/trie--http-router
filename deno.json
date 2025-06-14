@@ -1,15 +1,12 @@
 {
   "name": "@trie/http-router",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "license": "MIT",
   "exports": {
     ".": "./mod.ts",
     "./engines/render": "./src/engines/render/index.ts"
   },
   "author": "Natnael",
-  "tasks": {
-    "demo": "HOME=/tmp deno run --allow-net --allow-read=. --watch --allow-env=HOME,BABEL_TYPES_8_BREAKING demo.ts"
-  },
   "fmt": {
     "files": {
       "include": ["src/", "test/"],

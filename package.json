@@ -1,0 +1,28 @@
+{
+  "name": "@trie/http-router",
+  "version": "0.2.1",
+  "license": "MIT",
+  "author": "Natnael",
+  "description": "A lightweight, and lightning fast router library for Deno",
+  "main": "./mod.ts",
+  "exports": {
+    ".": "./mod.ts",
+    "./engines/render": "./src/engines/render/index.ts"
+  },
+  "dependencies": {
+    "pug": "3.^0.3"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nati-esh-zed/http-router.git"
+  },
+  "keywords": [
+    "http",
+    "router",
+    "deno",
+    "typescript"
+  ]
+}

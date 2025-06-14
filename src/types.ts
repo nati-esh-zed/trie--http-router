@@ -64,12 +64,12 @@ export type Content = {
 } & Record<string, string>;
 
 export type PathParts = Array<[string, string | undefined]>;
-
+export type HandlerResult =
+  | Response
+  | Promise<Response>
+  | Promise<void>
+  | Promise<Response | void>
+  | void;
 export type Handler<UserData extends Record<string, unknown>> = {
-  (this: Router<UserData>, pr: ProcessedRequest & UserData):
-    | Response
-    | Promise<Response>
-    | Promise<void>
-    | Promise<Response | void>
-    | void;
+  (this: Router<UserData>, pr: ProcessedRequest & UserData): HandlerResult;
 };
