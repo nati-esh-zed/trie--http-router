@@ -1,3 +1,11 @@
+/**
+ * File: src/util/index.ts
+ *
+ * Utility functions for splitting and joining HTTP method/path strings, and other helpers.
+ *
+ * Used by the router and other modules for parsing and manipulating route definitions.
+ */
+
 import { REQUEST_METHODS_LIST, REQUEST_METHODS_SET } from "../defs.ts";
 import { RouterError } from "../error.ts";
 import type { PathParts, RequestMethod } from "../types.ts";

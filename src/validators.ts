@@ -1,3 +1,11 @@
+/**
+ * File: src/validators.ts
+ *
+ * Request query and body validation utilities for HTTP handlers.
+ *
+ * Provides helpers for validating and extracting query parameters and request bodies.
+ */
+
 import { CATEGORIZED_CONTENT_TYPES } from "./defs.ts";
 import { StatusCode } from "./index.ts";
 import type { ProcessedRequest } from "./processed-request.ts";

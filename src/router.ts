@@ -1,3 +1,11 @@
+/**
+ * File: src/router.ts
+ *
+ * HTTP router for registering, organizing, and handling routes, hooks, filters, and error handlers.
+ *
+ * Provides the main routing logic and request dispatch for the framework.
+ */
+
 import type {
   ContentTypes,
   Handler,

@@ -1,3 +1,11 @@
+/**
+ * File: src/defs.ts
+ *
+ * Framework-wide constants and definitions for protocols, content types, and HTTP methods.
+ *
+ * Used throughout the framework for validation and configuration.
+ */
+
 import type {
   ApplicationContentTypes,
   AudioContentTypes,

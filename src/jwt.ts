@@ -1,3 +1,12 @@
+/**
+ * File: src/jwt.ts
+ *
+ * JWT utilities and helpers for signing, verifying, and handling JWT tokens.
+ *
+ * Exports JWTStatus, JWTPayload, JWTResult, and functions for working with JWTs.
+ * Integrates with jsonwebtoken library for cryptographic operations.
+ */
+
 import {
   sign,
   verify,

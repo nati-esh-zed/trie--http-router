@@ -1,3 +1,11 @@
+/**
+ * File: src/util/log.ts
+ *
+ * Request logging utilities for HTTP requests and responses.
+ *
+ * Provides customizable logging functions for request lifecycle events.
+ */
+
 import type { RequestLoggerFn } from "../index.ts";
 import { methodColor, statusColor } from "./index.ts";
 

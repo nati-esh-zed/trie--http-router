@@ -1,3 +1,11 @@
+/**
+ * File: src/util/crypto.ts
+ *
+ * Cryptographic utilities for hashing and compression.
+ *
+ * Provides helpers for hashing data and compressing content.
+ */
+
 import { encodeHex } from "jsr:@std/encoding@1.0.5/hex";
 import { brotliCompressSync, type BrotliOptions } from "node:zlib";
 

@@ -1,3 +1,11 @@
+/**
+ * File: src/index.ts
+ *
+ * Main entry point for all core framework exports.
+ *
+ * Re-exports modules for easy import from a single location.
+ */
+
 export * from "./status/code.ts";
 export * from "./status/text.ts";
 export * from "./types.ts";

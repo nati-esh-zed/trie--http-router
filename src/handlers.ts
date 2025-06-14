@@ -1,3 +1,11 @@
+/**
+ * File: src/handlers.ts
+ *
+ * HTTP request handler utilities for serving static files and other resources.
+ *
+ * Provides main handler functions for use in the router.
+ */
+
 import { checkFileSync, fileExtension } from "./util/file.ts";
 import { EXT_CONTENT_TYPE_MAP } from "./defs.ts";
 import { compress } from "./util/crypto.ts";

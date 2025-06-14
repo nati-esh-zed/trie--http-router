@@ -1,3 +1,11 @@
+/**
+ * File: src/util/file.ts
+ *
+ * File system utility functions for checking file existence and modification times.
+ *
+ * Used by static file handlers and other modules needing file checks.
+ */
+
 export async function checkFile(path: string) {
   try {
     return await Deno.statSync(path);

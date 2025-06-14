@@ -1,3 +1,11 @@
+/**
+ * File: src/util/path-trie.ts
+ *
+ * Path trie data structure for efficient route matching and storage.
+ *
+ * Used internally by the router to manage route trees and handler lookup.
+ */
+
 import { RouterError } from "../error.ts";
 import type { Handler, RouteTypes } from "../types.ts";
 import type { PathParts } from "../types.ts";

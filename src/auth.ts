@@ -1,3 +1,11 @@
+/**
+ * File: src/auth.ts
+ *
+ * Authentication middleware and helpers for HTTP basic authentication and credential validation.
+ *
+ * Exports types and functions for integrating authentication into request handlers and routers.
+ */
+
 import type { JWT, JWTResult, JWTVerifyOptions } from "./jwt.ts";
 import { JWTStatus } from "./jwt.ts";
 import { StatusCode } from "./status/code.ts";

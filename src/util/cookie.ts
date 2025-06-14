@@ -1,3 +1,11 @@
+/**
+ * File: src/util/cookie.ts
+ *
+ * Cookie parsing, encoding, and management utilities for HTTP cookies.
+ *
+ * Provides helpers for setting, clearing, and decoding cookies in requests and responses.
+ */
+
 const SEMICOLON_CODE = encodeURIComponent(";");
 
 export type CookieValue = string | Date | number | boolean | null;

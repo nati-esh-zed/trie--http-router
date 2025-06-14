@@ -1,3 +1,11 @@
+/**
+ * File: src/types.ts
+ *
+ * Type definitions.
+ *
+ * Defines types common across the library.
+ */
+
 import type ProcessedRequest from "./processed-request.ts";
 import type { Router } from "./router.ts";
 

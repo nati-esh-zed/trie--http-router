@@ -1,3 +1,11 @@
+/**
+ * File: src/processed-request.ts
+ *
+ * ProcessedRequest: Encapsulates request/response state, cookies, status, and helpers for HTTP request processing.
+ *
+ * Used internally by the router and handlers to manage request lifecycle and metadata.
+ */
+
 import { type HttpError, RouterError } from "./error.ts";
 import { StatusText } from "./status/text.ts";
 import { StatusCode, type StatusCode3 } from "./status/code.ts";

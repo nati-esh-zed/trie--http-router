@@ -1,3 +1,11 @@
+/**
+ * File: src/status/text.ts
+ *
+ * HTTP status text mappings for use throughout the framework.
+ *
+ * Maps status codes to their standard reason phrases.
+ */
+
 export const StatusText: Map<number, string> = new Map([
   [100, "Continue"],
   [101, "Switching Protocols"],

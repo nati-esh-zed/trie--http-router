@@ -1,3 +1,11 @@
+/**
+ * File: src/status/code.ts
+ *
+ * HTTP status code enumerations for use throughout the framework.
+ *
+ * Provides named constants for all standard HTTP status codes.
+ */
+
 export enum StatusCode {
   Continue = 100,
   SwitchingProtocols = 101,

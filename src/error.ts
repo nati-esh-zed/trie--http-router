@@ -1,3 +1,11 @@
+/**
+ * File: src/error.ts
+ *
+ * Error types for router and HTTP error handling.
+ *
+ * Exports RouterError and HttpError for consistent error management across the framework.
+ */
+
 export class RouterError extends Error {
   constructor(message?: string, options?: ErrorOptions) {
     super(message, options);

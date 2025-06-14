@@ -1,3 +1,11 @@
+/**
+ * File: src/filters.ts
+ *
+ * HTTP request filtering middleware utilities.
+ *
+ * Provides rate limiting and other filter handlers for use in the router.
+ */
+
 import { REQUEST_METHODS_LIST } from "./defs.ts";
 import { RouterError, StatusCode } from "./index.ts";
 import type { ProcessedRequest } from "./processed-request.ts";

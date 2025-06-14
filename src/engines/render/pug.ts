@@ -1,3 +1,11 @@
+/**
+ * File: src/engines/render/pug.ts
+ *
+ * Pug template rendering engine integration for the framework.
+ *
+ * Provides a RenderEngine implementation using the Pug templating language.
+ */
+
 import { compileFile } from "npm:pug@3.0.3";
 import { checkFileSync } from "../../util/file.ts";
 import { StatusCode } from "../../index.ts";
