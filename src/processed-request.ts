@@ -26,12 +26,10 @@ import type {
   HandlerResult,
   RequestMethod,
   SecureProtocols,
-  SecureHashAlgorithm,
 } from "./types.ts";
 import type RenderEngine from "./render-engine.ts";
-import { SecureHashAlgorithmEnum } from "./types.ts";
 import { SECURE_PROTOCOLS_SET } from "./defs.ts";
-import { createHmac } from "node:crypto";
+import type { JWT } from "@trie/http-router/jwt";
 
 export type ProRequest = ProcessedRequest;
 
@@ -91,48 +89,29 @@ export class ProcessedRequest {
 
   signedCookies<Payload extends Record<string, unknown>>(
     select: string[],
-    options: { secret: string },
+    options: { jwt: JWT<Payload> },
     cookieDecoder?: CookieDecoder
   ): Promise<Record<string, Payload>> {
     return new Promise<Record<string, Payload>>((resolve) => {
       const cookieHeader = this.request.headers.get("cookie");
       if (!cookieHeader) return resolve({});
-      const secret = options.secret;
+      const jwt = options.jwt;
       const decode = cookieDecoder;
       const cookies = parseCookieFromHeader(cookieHeader, {
         select,
         decode,
       }).map(([name, cookie]) => {
         if (typeof cookie === "string") {
-          const [header_, body, signature] = cookie.split(".", 3);
-          if (!(header_ && body && signature)) {
-            throw new Error("invalid signed cookie");
+          const payload = jwt.decode(cookie);
+          if (!payload) {
+            throw new Error("invalid auth cookie");
           }
-          const header = JSON.parse(atob(header_));
-          const { alg } = header;
-          if (!alg) {
-            throw new Error("malformed signed cookie header");
-          }
-          // verify signature
-          try {
-            const digest = createHmac(alg, secret)
-              .update(body)
-              .digest("base64");
-            const valid =
-              digest.isWellFormed() && digest.replace(/=+$/g, "") === signature;
-            if (!valid) {
-              throw new Error("invalid signed cookie");
-            }
-          } catch (err) {
-            throw new Error("try sign cookie: " + (err as Error).message);
-          }
-          const decodedCookie = JSON.parse(atob(body));
-          return [name, decodedCookie];
+          return [name, payload];
         } else {
-          throw new Error("invalid signed cookie");
+          throw new Error("invalid auth cookie");
         }
       });
-      const signedCookies: Record<string, Payload> =
+      const signedCookies: Promise<Record<string, Payload>> =
         Object.fromEntries(cookies);
       resolve(signedCookies);
     });
@@ -193,13 +172,10 @@ export class ProcessedRequest {
     return this;
   }
 
-  signCookie(
+  signCookie<Payload extends Record<string, unknown>>(
     name: string,
-    value: Record<string, unknown>,
-    signOptions: {
-      algorithm: SecureHashAlgorithm;
-      secret: string;
-    },
+    value: Payload,
+    jwt: JWT<Payload>,
     options?: CookieOptions,
     cookieEncoder?: CookieEncoder
   ): ProcessedRequest {
@@ -211,20 +187,14 @@ export class ProcessedRequest {
         `Trying to set secure cookie \`${name}\` over insecure protocol ${this.url.origin}${this.url.pathname}`
       );
     }
-    const alg = SecureHashAlgorithmEnum[signOptions.algorithm];
-    const secret = signOptions.secret;
-    const header = btoa(JSON.stringify({ alg })).replace(/=+$/g, "");
-    const body = btoa(JSON.stringify(value)).replace(/=+$/g, "");
+    // const body = Buffer.from(JSON.stringify(value)).toString("base64url");
     try {
-      const signature = createHmac(alg, secret)
-        .update(body)
-        .digest("base64")
-        .replace(/=+$/g, "");
-      const token = `${header}.${body}.${signature}`;
+      const token = jwt.sign(value);
+      if (!token) throw new Error("try sign auth cookie: sign failed");
       console.log(token);
       setCookie(this.headers, name, token, options, cookieEncoder);
     } catch (err) {
-      throw new Error("try sign cookie: " + (err as Error).message);
+      throw new Error("try sign auth cookie: " + (err as Error).message);
     }
     return this;
   }

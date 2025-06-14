@@ -18,5 +18,4 @@ export * from "./filters.ts";
 export * from "./handlers.ts";
 export * from "./validators.ts";
 export * from "./auth.ts";
-export * from "./jwt.ts";
 export * from "./render-engine.ts";

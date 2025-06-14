@@ -6,12 +6,10 @@
  * Exports types and functions for integrating authentication into request handlers and routers.
  */
 
-import type { JWT, JWTResult, JWTVerifyOptions } from "./jwt.ts";
-import { JWTStatus } from "./jwt.ts";
+import type { JWT, JwtPayload, JWTVeryfyOptions } from "./jwt.ts";
 import { StatusCode } from "./status/code.ts";
 import type { ProcessedRequest } from "./processed-request.ts";
 import type { Handler, HandlerResult } from "./types.ts";
-import { RouterError } from "./error.ts";
 
 export type UsernamePasswordOptions = {
   username: string;
@@ -115,7 +113,7 @@ export type AuthJsonWebTokenFn<
   Payload extends Record<string, unknown>,
   UserData extends Record<string, unknown>
 > = (
-  payload: JWTResult<Payload>,
+  payload: JwtPayload<Payload>,
   pr: ProcessedRequest & UserData
 ) => HandlerResult;
 
@@ -125,16 +123,15 @@ export type AuthJsonWebTokenParams<
 > = {
   jwt: JWT<Payload>;
   acceptJWT: AuthJsonWebTokenFn<Payload, UserData>;
+  verify?: JWTVeryfyOptions;
   scheme?: string | "Bearer";
-  donotReturn?: boolean;
 };
 
 function jsonWebToken<
   Payload extends Record<string, unknown>,
   UserData extends Record<string, unknown>
 >(
-  options: AuthJsonWebTokenParams<Payload, UserData> &
-    JWTVerifyOptions<Payload>,
+  options: AuthJsonWebTokenParams<Payload, UserData>,
   status?: number
 ): Handler<UserData> {
   status = status || StatusCode.Unauthorized;
@@ -143,37 +140,19 @@ function jsonWebToken<
   const acceptJWT = options.acceptJWT;
   return async function (pr: ProcessedRequest & UserData) {
     pr.status(status);
-    const authorizationHeader = pr.request.headers.get("Authorization");
+    const authorizationHeader = pr.request.headers.get("authorization");
     if (authorizationHeader) {
-      const [hScheme, hToken] = authorizationHeader.split(" ").filter(Boolean);
+      const [hScheme, token] = authorizationHeader.split(" ").filter(Boolean);
       const schemesMatch = hScheme.toLowerCase() === scheme;
-      if (schemesMatch) {
-        const verifyOptions: JWTVerifyOptions<Payload> = {
-          expLeeway: options.expLeeway,
-          nbfLeeway: options.nbfLeeway,
-          audience: options.audience,
-          predicates: options.predicates,
-        };
-        const jwtResult = await jwt.verify(hToken, verifyOptions);
-        switch (jwtResult.status) {
-          case JWTStatus.EXPIRED:
-            jwtResult.error = new Error("token expired");
-            break;
-          case JWTStatus.NOT_YET:
-            jwtResult.error = new Error("token not valid yet");
-            break;
-          case JWTStatus.ERROR:
-          case JWTStatus.INVALID:
-            jwtResult.error = new Error("invalid token");
-            break;
-        }
-        let result = acceptJWT(jwtResult, pr);
-        if (result) {
-          if (result instanceof Promise) result = await result;
-          if (result instanceof Response) return result;
-        }
-        pr.status(200);
+      if (!schemesMatch) return pr.end();
+      const payload = await jwt.decode(token, options.verify);
+      if (!payload) return pr.end();
+      let result = acceptJWT(payload, pr);
+      if (result) {
+        if (result instanceof Promise) result = await result;
+        if (result instanceof Response) return result;
       }
+      pr.status(200);
     }
   };
 }
@@ -188,7 +167,7 @@ export type AuthCookieParams<
   UserData extends Record<string, unknown>
 > = {
   name: string;
-  secret?: string;
+  jwt: JWT<Payload>;
   acceptPayload: AuthCookieFn<Payload, UserData>;
 };
 
@@ -200,17 +179,12 @@ function signedCookie<
   status?: number
 ): Handler<UserData> {
   const cookieName = options.name;
-  const cookieSecret = options.secret;
+  const jwt = options.jwt;
   const acceptPayload = options.acceptPayload;
-  if (!cookieSecret) {
-    throw new RouterError("null secret key");
-  }
   status = status || StatusCode.Unauthorized;
   return async function (pr: ProcessedRequest & UserData) {
     pr.status(status);
-    const cookies = await pr.signedCookies<Payload>([cookieName], {
-      secret: cookieSecret,
-    });
+    const cookies = await pr.signedCookies<Payload>([cookieName], { jwt });
     const cookie = cookies[cookieName];
     if (cookie == null) return pr.end();
     let result = acceptPayload(cookie, pr);

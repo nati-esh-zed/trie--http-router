@@ -1,16 +1,16 @@
 {
   "name": "@trie/http-router",
-  "version": "0.3.3",
+  "version": "0.4.4",
   "license": "MIT",
   "author": "Natnael",
   "description": "A lightweight, and lightning fast http router library for Deno #server",
   "main": "./mod.ts",
   "exports": {
     ".": "./mod.ts",
+    "./jwt": "./src/jwt.ts",
     "./engines/render": "./src/engines/render/index.ts"
   },
   "dependencies": {
-    "jsonwebtoken": "^9.0.2",
     "pug": "^3.0.3"
   },
   "engines": {
