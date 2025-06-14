@@ -1,0 +1,32 @@
+# Deno cache (optional, usually not stored in repo)
+deno.lock
+.deno/
+
+# VS Code settings
+.vscode/
+
+# Environment files
+.env
+.env.*
+
+# Test output or logs
+coverage/
+*.log
+
+# Compiled or temporary files
+dist/
+tmp/
+temp/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Node leftovers (if using tooling that adds them)
+node_modules/
+
+# IDE/project files
+.idea/
+*.sw?
+
+.local.test/

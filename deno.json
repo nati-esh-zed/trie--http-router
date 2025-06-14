@@ -1,0 +1,37 @@
+{
+  "name": "@trie/http-router",
+  "version": "0.1.0",
+  "license": "MIT",
+  "exports": {
+    ".": "./mod.ts",
+    "./engines/render": "./src/engines/render/index.ts"
+  },
+  "author": "Natnael",
+  "tasks": {
+    "demo": "HOME=/tmp deno run --allow-net --allow-read=. --watch --allow-env=HOME,BABEL_TYPES_8_BREAKING demo.ts"
+  },
+  "fmt": {
+    "files": {
+      "include": ["src/", "test/"],
+      "exclude": ["dist/"]
+    },
+    "options": {
+      "lineWidth": 80,
+      "indentWidth": 2,
+      "semiColons": true,
+      "useTabs": false,
+      "singleQuote": false,
+      "proseWrap": "always"
+    }
+  },
+  "lint": {
+    "files": {
+      "include": ["src/"],
+      "exclude": ["dist/"]
+    }
+  },
+  "compilerOptions": {
+    "lib": ["dom", "deno.ns"],
+    "strict": true
+  }
+}
