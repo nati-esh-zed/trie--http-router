@@ -30,3 +30,7 @@ node_modules/
 *.sw?
 
 .local.test/
+public
+pug
+demo.ts
+pnpm-lock.yaml
