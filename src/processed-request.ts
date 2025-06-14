@@ -9,6 +9,7 @@ import {
   type CookieEncoder,
   type CookieOptions,
   type CookieValue,
+  parseCookieFromHeader,
   setCookie,
 } from "./util/cookie.ts";
 import type {
@@ -17,9 +18,12 @@ import type {
   HandlerResult,
   RequestMethod,
   SecureProtocols,
+  SecureHashAlgorithm,
 } from "./types.ts";
 import type RenderEngine from "./render-engine.ts";
+import { SecureHashAlgorithmEnum } from "./types.ts";
 import { SECURE_PROTOCOLS_SET } from "./defs.ts";
+import { createHmac } from "node:crypto";
 
 export type ProRequest = ProcessedRequest;
 
@@ -46,13 +50,11 @@ export class ProcessedRequest {
     public params: Record<string, string>,
     public contentType?: string,
     public content?: Content,
-    public renderEngine?: RenderEngine,
-    public cookies?: Record<string, CookieValue>,
-    public cookieEncoder?: CookieEncoder,
-    public cookieDecoder?: CookieDecoder
+    public renderEngine?: RenderEngine // public cookies?: Record<string, CookieValue>, // public cookieEncoder?: CookieEncoder, // public cookieDecoder?: CookieDecoder
   ) {
     this.query = this.query.bind(this);
     this.body = this.body.bind(this);
+    this.cookies = this.cookies.bind(this);
     this.cookie = this.cookie.bind(this);
     this.expire = this.expire.bind(this);
     this.expireAll = this.expireAll.bind(this);
@@ -65,6 +67,67 @@ export class ProcessedRequest {
     this.end = this.end.bind(this);
     this.redirect = this.redirect.bind(this);
     this.forward = this.forward.bind(this);
+  }
+
+  cookies(cookieDecoder?: CookieDecoder): Promise<Record<string, CookieValue>> {
+    return new Promise<Record<string, CookieValue>>((resolve) => {
+      const cookieHeader = this.request.headers.get("cookie");
+      if (!cookieHeader) return resolve({});
+      const decode = cookieDecoder;
+      const cookies: Record<string, CookieValue> = Object.fromEntries(
+        parseCookieFromHeader(cookieHeader, { decode })
+      );
+      resolve(cookies);
+    });
+  }
+
+  signedCookies<Payload extends Record<string, unknown>>(
+    select: string[],
+    options: { secret: string },
+    cookieDecoder?: CookieDecoder
+  ): Promise<Record<string, Payload>> {
+    return new Promise<Record<string, Payload>>((resolve) => {
+      const cookieHeader = this.request.headers.get("cookie");
+      if (!cookieHeader) return resolve({});
+      const secret = options.secret;
+      const decode = cookieDecoder;
+      const cookies = parseCookieFromHeader(cookieHeader, {
+        select,
+        decode,
+      }).map(([name, cookie]) => {
+        if (typeof cookie === "string") {
+          const [header_, body, signature] = cookie.split(".", 3);
+          if (!(header_ && body && signature)) {
+            throw new Error("invalid signed cookie");
+          }
+          const header = JSON.parse(atob(header_));
+          const { alg } = header;
+          if (!alg) {
+            throw new Error("malformed signed cookie header");
+          }
+          // verify signature
+          try {
+            const digest = createHmac(alg, secret)
+              .update(body)
+              .digest("base64");
+            const valid =
+              digest.isWellFormed() && digest.replace(/=+$/g, "") === signature;
+            if (!valid) {
+              throw new Error("invalid signed cookie");
+            }
+          } catch (err) {
+            throw new Error("try sign cookie: " + (err as Error).message);
+          }
+          const decodedCookie = JSON.parse(atob(body));
+          return [name, decodedCookie];
+        } else {
+          throw new Error("invalid signed cookie");
+        }
+      });
+      const signedCookies: Record<string, Payload> =
+        Object.fromEntries(cookies);
+      resolve(signedCookies);
+    });
   }
 
   query(): Promise<Record<string, string>> {
@@ -107,7 +170,8 @@ export class ProcessedRequest {
   cookie(
     name: string,
     value: CookieValue,
-    options?: CookieOptions
+    options?: CookieOptions,
+    cookieEncoder?: CookieEncoder
   ): ProcessedRequest {
     if (
       options?.secure &&
@@ -116,8 +180,43 @@ export class ProcessedRequest {
       throw new RouterError(
         `Trying to set secure cookie \`${name}\` over insecure protocol ${this.url.origin}${this.url.pathname}`
       );
-    } else {
-      setCookie(this.headers, name, value, options, this.cookieEncoder);
+    }
+    setCookie(this.headers, name, value, options, cookieEncoder);
+    return this;
+  }
+
+  signCookie(
+    name: string,
+    value: Record<string, unknown>,
+    signOptions: {
+      algorithm: SecureHashAlgorithm;
+      secret: string;
+    },
+    options?: CookieOptions,
+    cookieEncoder?: CookieEncoder
+  ): ProcessedRequest {
+    if (
+      options?.secure &&
+      !SECURE_PROTOCOLS_SET.has(this.url.protocol as SecureProtocols)
+    ) {
+      throw new RouterError(
+        `Trying to set secure cookie \`${name}\` over insecure protocol ${this.url.origin}${this.url.pathname}`
+      );
+    }
+    const alg = SecureHashAlgorithmEnum[signOptions.algorithm];
+    const secret = signOptions.secret;
+    const header = btoa(JSON.stringify({ alg })).replace(/=+$/g, "");
+    const body = btoa(JSON.stringify(value)).replace(/=+$/g, "");
+    try {
+      const signature = createHmac(alg, secret)
+        .update(body)
+        .digest("base64")
+        .replace(/=+$/g, "");
+      const token = `${header}.${body}.${signature}`;
+      console.log(token);
+      setCookie(this.headers, name, token, options, cookieEncoder);
+    } catch (err) {
+      throw new Error("try sign cookie: " + (err as Error).message);
     }
     return this;
   }

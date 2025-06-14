@@ -1,4 +1,10 @@
-import { sign, verify, type JwtPayload } from "npm:jsonwebtoken@9.0.2";
+import {
+  sign,
+  verify,
+  type JwtPayload,
+  type Algorithm,
+} from "npm:jsonwebtoken@9.0.2";
+import { RouterError } from "./error.ts";
 
 export enum JWTStatus {
   ERROR = -1,
@@ -8,55 +14,74 @@ export enum JWTStatus {
   INVALID = 3,
 }
 
-export type JWTAlgorithm =
-  | "HS256"
-  | "HS384"
-  | "HS512"
-  | "RS256"
-  | "RS384"
-  | "RS512";
-export type JWTResult = {
-  payload: JwtPayload | null;
+export type JWTPayload<Payload extends Record<string, unknown>> = Payload &
+  JwtPayload;
+export type JWTResult<Payload extends Record<string, unknown>> = {
+  payload: JWTPayload<Payload> | null;
   status: JWTStatus;
   error?: Error;
 };
 
-type JWTVerifyPredicate = (payload: JwtPayload) => boolean;
+type JWTVerifyPredicate<Payload extends Record<string, unknown>> = (
+  payload: JWTPayload<Payload>
+) => boolean;
 
-export type JWTVerifyOptions = {
+export type JWTVerifyOptions<Payload extends Record<string, unknown>> = {
   expLeeway?: number;
   nbfLeeway?: number;
   audience?: string;
-  predicates?: JWTVerifyPredicate[];
+  predicates?: JWTVerifyPredicate<Payload>[];
 };
 
-export class JWT {
-  algorithm: JWTAlgorithm;
-  secret: string;
+export class JWT<Payload extends Record<string, unknown>> {
+  #algorithm: Algorithm;
+  #secret: string;
 
-  constructor(secret: string, algorithm: JWTAlgorithm = "HS256") {
-    this.algorithm = algorithm;
-    this.secret = secret;
+  get algorithm(): Algorithm {
+    return this.#algorithm;
   }
 
-  sign(payload: object): string {
-    return sign(payload, this.secret, { algorithm: this.algorithm });
+  get secret(): string {
+    return this.#secret;
   }
 
-  verify(token: string, options: JWTVerifyOptions = {}): JWTResult {
+  constructor(secret: string | undefined, algorithm: Algorithm = "HS512") {
+    if (!secret) {
+      throw new RouterError("null JWT secret");
+    }
+    this.#algorithm = algorithm;
+    this.#secret = secret;
+  }
+
+  sign(payload: JWTPayload<Payload>): string {
+    return sign(payload, this.#secret, { algorithm: this.#algorithm });
+  }
+
+  verify(
+    token: string,
+    options: JWTVerifyOptions<Payload> = {}
+  ): JWTResult<Payload> {
     try {
-      const payload = verify(token, this.secret, {
-        algorithms: [this.algorithm],
+      const payload = verify(token, this.#secret, {
+        algorithms: [this.#algorithm],
         audience: options.audience,
-      }) as JwtPayload;
+      }) as JWTPayload<Payload>;
       const currentTime = Math.floor(Date.now() / 1000);
       // Check expiration (`exp`)
       if (payload.exp && payload.exp + (options.expLeeway || 0) < currentTime) {
-        return { payload: null, status: JWTStatus.EXPIRED };
+        return {
+          payload: null,
+          status: JWTStatus.EXPIRED,
+          error: new Error("token expired"),
+        };
       }
       // Check "not before" (`nbf`)
       if (payload.nbf && payload.nbf > currentTime + (options.nbfLeeway || 0)) {
-        return { payload: null, status: JWTStatus.NOT_YET };
+        return {
+          payload: null,
+          status: JWTStatus.NOT_YET,
+          error: new Error("token not active yet"),
+        };
       }
       // Custom predicates (extra validation)
       if (options.predicates) {
@@ -66,7 +91,7 @@ export class JWT {
           }
         }
       }
-      return { payload, status: JWTStatus.VALID };
+      return { payload, status: JWTStatus.VALID, error: undefined };
     } catch (error) {
       return { payload: null, status: JWTStatus.ERROR, error: error as Error };
     }

@@ -1,5 +1,3 @@
-/** */
-
 const SEMICOLON_CODE = encodeURIComponent(";");
 
 export type CookieValue = string | Date | number | boolean | null;
@@ -27,7 +25,7 @@ export interface ClearCookieOptions {
 }
 
 export type ParseCookieOptions = {
-  secret?: string;
+  select?: string[];
   decode?: CookieDecoder;
 };
 
@@ -41,25 +39,26 @@ export function splitCookieKeyValue(cookie: string) {
 
 export function parseCookieFromHeader(
   cookieHeader: string,
-  options?: ParseCookieOptions,
+  options?: ParseCookieOptions
 ): Array<[string, CookieValue]> {
+  const select = options?.select;
   const decode = options?.decode;
-  const cookie = cookieHeader.split(";").map((ckPair) => {
+  const cookies = cookieHeader.split(";").map((ckPair) => {
     const [key, value] = splitCookieKeyValue(ckPair.trim());
     const value_ = value.replaceAll(SEMICOLON_CODE, ";");
     const decodedValue = decode ? decode(value_) : value_;
     return [key, decodedValue];
   }) as Array<[string, CookieValue]>;
-  return cookie;
+  return select ? cookies.filter(([key]) => select.includes(key)) : cookies;
 }
 
 export function parseCookieOption(key: string, val: unknown) {
   switch (key) {
     case "expires":
-      return `Expires="${
-        (val instanceof Date ? val : new Date(val as number | string))
-          .toUTCString()
-      }"`;
+      return `Expires="${(val instanceof Date
+        ? val
+        : new Date(val as number | string)
+      ).toUTCString()}"`;
     case "maxAge":
       return `Max-Age=${val}`;
     case "domain":
@@ -82,12 +81,14 @@ export function setCookie(
   name: string,
   value: CookieValue,
   options?: CookieOptions,
-  cookieEncoder?: CookieEncoder,
+  cookieEncoder?: CookieEncoder
 ) {
   const encode = cookieEncoder;
-  const optionStr = !options ? "Path=/" : Object.entries(options)
-    .map(([key, val]) => parseCookieOption(key, val))
-    .join("; ");
+  const optionStr = !options
+    ? "Path=/"
+    : Object.entries(options)
+        .map(([key, val]) => parseCookieOption(key, val))
+        .join("; ");
   const encodedValue = (
     encode ? encode(value) : value?.toString() || ""
   ).replaceAll(";", SEMICOLON_CODE);
@@ -98,11 +99,13 @@ export function setCookie(
 export function clearCookie(
   headers: Headers,
   name: string,
-  options?: ClearCookieOptions,
+  options?: ClearCookieOptions
 ) {
-  const optionStr = !options ? "Path=/" : Object.entries(options)
-    .map(([key, val]) => parseCookieOption(key, val))
-    .join("; ");
+  const optionStr = !options
+    ? "Path=/"
+    : Object.entries(options)
+        .map(([key, val]) => parseCookieOption(key, val))
+        .join("; ");
   const epoch = new Date(0).toUTCString();
   const cookieHeader = `${name}=; Expires=${epoch}; ${optionStr}`;
   headers.append("Set-Cookie", cookieHeader);
@@ -111,11 +114,13 @@ export function clearCookie(
 export function clearCookies(
   request: Request,
   headers: Headers,
-  options?: ClearCookieOptions,
+  options?: ClearCookieOptions
 ) {
-  const optionStr = !options ? "Path=/" : Object.entries(options)
-    .map(([key, val]) => parseCookieOption(key, val))
-    .join("; ");
+  const optionStr = !options
+    ? "Path=/"
+    : Object.entries(options)
+        .map(([key, val]) => parseCookieOption(key, val))
+        .join("; ");
   const reqCookieHeader = request.headers.get("cookie");
   if (reqCookieHeader) {
     const epoch = new Date(0).toUTCString();

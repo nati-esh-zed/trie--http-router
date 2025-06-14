@@ -5,7 +5,7 @@
 [![Version](https://img.shields.io/badge/version-1.0.0-yellow.svg)](#)
 [![Made with TypeScript](https://img.shields.io/badge/TypeScript-strong-blue.svg?logo=typescript)](https://www.typescriptlang.org/)
 
-> A lightweight, and lightning fast router library for Deno.  
+> A lightweight, and lightning fast http router library for Deno.  
 > Built for simplicity, extensibility, and modern Deno applications.
 
 ---
@@ -163,6 +163,7 @@ Query and Body:
 Cookies:
 
 - `cookie (name, value, options?)`
+- `signCookie (name, value, signOptions, options?)`
 - `expire (name, options?)`
 - `expireAll (options?)`
 
@@ -196,14 +197,6 @@ import { filter, rateLimit, accessControl } from "@trie/http-router";
 import { handle, staticFiles } from "@trie/http-router";
 ```
 
-### Parsers:
-
-> `parse.cookie`
-
-```ts
-import { parse } from "@trie/http-router";
-```
-
 ### Validators:
 
 > `query` `body` `content` `noQuery` `noContent` or `validate.*`
@@ -229,7 +222,7 @@ import { JWT } from "@trie/http-router";
 
 ### Auth:
 
-> `auth` `basic` `apiKey` `bearerToken` `jsonwebtoken` `cookie`
+> `auth` `basic` `apiKey` `bearerToken` `jsonwebtoken` `signedCookie`
 
 ```ts
 import {
@@ -238,7 +231,7 @@ import {
   apiKey,
   bearerToken,
   jsonwebtoken,
-  cookie,
+  signedCookie,
 } from "@trie/http-router";
 ```
 

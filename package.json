@@ -1,9 +1,9 @@
 {
   "name": "@trie/http-router",
-  "version": "0.2.2",
+  "version": "0.3.3",
   "license": "MIT",
   "author": "Natnael",
-  "description": "A lightweight, and lightning fast router library for Deno",
+  "description": "A lightweight, and lightning fast http router library for Deno #server",
   "main": "./mod.ts",
   "exports": {
     ".": "./mod.ts",

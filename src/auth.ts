@@ -1,8 +1,9 @@
-import { type JWT, JWTStatus, type JWTVerifyOptions } from "./jwt.ts";
+import type { JWT, JWTResult, JWTVerifyOptions } from "./jwt.ts";
+import { JWTStatus } from "./jwt.ts";
 import { StatusCode } from "./status/code.ts";
 import type { ProcessedRequest } from "./processed-request.ts";
 import type { Handler, HandlerResult } from "./types.ts";
-import type { CookieValue } from "./util/cookie.ts";
+import { RouterError } from "./error.ts";
 
 export type UsernamePasswordOptions = {
   username: string;
@@ -15,13 +16,7 @@ export type AuthBasicCredentialFn<UserData> = (
 ) => HandlerResult;
 
 export type AuthBasicParams<UserData> = {
-  credentials:
-    | {
-        username: string;
-        password: string;
-      }
-    | AuthBasicCredentialFn<UserData>;
-  donotReturn?: boolean;
+  acceptCredentials: AuthBasicCredentialFn<UserData>;
 };
 
 function basic<UserData extends Record<string, unknown>>(
@@ -29,31 +24,20 @@ function basic<UserData extends Record<string, unknown>>(
   status?: number
 ): Handler<UserData> {
   status = status || StatusCode.Unauthorized;
-  const credentials = options.credentials;
-  const donotReturn = options.donotReturn;
-  const credentialsIsAFunction = typeof credentials === "function";
-  return function (pr: ProcessedRequest & UserData) {
+  const acceptCredentials = options.acceptCredentials;
+  return async function (pr: ProcessedRequest & UserData) {
     const authorizationHeader = pr.request.headers.get("authorization");
     if (authorizationHeader) {
-      const [scheme, params] = authorizationHeader.split(" ");
-      if (scheme.toLowerCase() === "basic") {
-        const [username, password] = atob(params).split(":");
-        if (credentialsIsAFunction) {
-          const response = credentials({ username, password }, pr);
-          if (response) return response;
-          return;
-        } else if (
-          username === credentials.username &&
-          password === credentials.password
-        ) {
-          return;
-        }
+      const [scheme, creds] = authorizationHeader.split(" ", 2);
+      const schemesMatch = scheme.toLowerCase() === "basic";
+      if (!schemesMatch) return pr.end();
+      const [username, password] = atob(creds).split(":", 2);
+      let result = acceptCredentials({ username, password }, pr);
+      if (result) {
+        if (result instanceof Promise) result = await result;
+        if (result instanceof Response) return result;
       }
-    }
-    if (donotReturn) {
-      pr.status(status);
-    } else {
-      return pr.end(status);
+      pr.status(200);
     }
   };
 }
@@ -64,8 +48,7 @@ export type AuthApiKeyCredentialFn<UserData> = (
 ) => HandlerResult;
 
 export type AuthApiKeyParams<UserData> = {
-  key: string | AuthApiKeyCredentialFn<UserData>;
-  donotReturn?: boolean;
+  accpetKey: AuthApiKeyCredentialFn<UserData>;
 };
 
 function apiKey<UserData extends Record<string, unknown>>(
@@ -73,34 +56,28 @@ function apiKey<UserData extends Record<string, unknown>>(
   status?: number
 ): Handler<UserData> {
   status = status || StatusCode.Unauthorized;
-  const key = options.key;
-  const donotReturn = options.donotReturn;
-  const keyIsAFunction = typeof key === "function";
-  return function (pr: ProcessedRequest & UserData) {
-    const xApiKeyHeader = pr.request.headers.get("X-API-Key");
-    if (xApiKeyHeader && keyIsAFunction) {
-      const response = key(xApiKeyHeader, pr);
-      if (response) return response;
-      return;
-    } else if (xApiKeyHeader && xApiKeyHeader == key) {
-      return;
-    } else if (donotReturn) {
-      pr.status(status);
-    } else {
-      return pr.end(status);
+  const accpetKey = options.accpetKey;
+  return async function (pr: ProcessedRequest & UserData) {
+    pr.status(status);
+    const xApiKey = pr.request.headers.get("X-API-Key");
+    if (!xApiKey) return pr.end();
+    let result = accpetKey(xApiKey, pr);
+    if (result) {
+      if (result instanceof Promise) result = await result;
+      if (result instanceof Response) return result;
     }
+    pr.status(200);
   };
 }
 
 export type AuthBearerTokenFn = (
   token: string,
   pr: ProcessedRequest
-) => boolean | Promise<boolean>;
+) => HandlerResult;
 
 export type AuthBearerTokenParams = {
-  token: string | AuthBearerTokenFn;
+  acceptToken: AuthBearerTokenFn;
   scheme?: string | "Bearer";
-  donotReturn?: boolean;
 };
 
 function bearerToken<UserData extends Record<string, unknown>>(
@@ -109,139 +86,131 @@ function bearerToken<UserData extends Record<string, unknown>>(
 ): Handler<UserData> {
   status = status || StatusCode.Unauthorized;
   const scheme = options.scheme?.toLowerCase() || "bearer";
-  const token = options.token;
-  const donotReturn = options.donotReturn;
+  const acceptToken = options.acceptToken;
   return async function (pr: ProcessedRequest) {
+    pr.status(status);
     const authorizationHeader = pr.request.headers.get("Authorization");
-    if (authorizationHeader) {
-      const [hScheme, hToken] = authorizationHeader.split(" ").filter(Boolean);
-      const schemesMatch = hScheme.toLowerCase() === scheme;
-      if (schemesMatch) {
-        if (typeof token === "function") {
-          let result = token(hToken, pr);
-          if (result instanceof Promise) result = await result;
-          if (result) return;
-        } else if (hToken === token) {
-          return;
-        }
-      }
+    if (!authorizationHeader) return pr.end();
+    const [hScheme, hToken] = authorizationHeader.split(" ").filter(Boolean);
+    const schemesMatch = hScheme.toLowerCase() === scheme;
+    if (!schemesMatch) return pr.end();
+    let result = acceptToken(hToken, pr);
+    if (result) {
+      if (result instanceof Promise) result = await result;
+      if (result instanceof Response) return result;
     }
-    if (donotReturn) {
-      pr.status(status);
-    } else {
-      return pr.end(status);
-    }
+    pr.status(200);
   };
 }
 
-export type AuthJsonWebTokenFn<UserData> = (
-  payload: Record<string, unknown>,
+export type AuthJsonWebTokenFn<
+  Payload extends Record<string, unknown>,
+  UserData extends Record<string, unknown>
+> = (
+  payload: JWTResult<Payload>,
   pr: ProcessedRequest & UserData
-) => boolean | Promise<boolean>;
+) => HandlerResult;
 
-export type AuthJsonWebTokenParams<UserData extends Record<string, unknown>> = {
-  jwt: JWT;
-  payload?: AuthJsonWebTokenFn<UserData>;
+export type AuthJsonWebTokenParams<
+  Payload extends Record<string, unknown>,
+  UserData extends Record<string, unknown>
+> = {
+  jwt: JWT<Payload>;
+  acceptJWT: AuthJsonWebTokenFn<Payload, UserData>;
   scheme?: string | "Bearer";
   donotReturn?: boolean;
 };
 
-function jsonwebtoken<UserData extends Record<string, unknown>>(
-  options: AuthJsonWebTokenParams<UserData> & JWTVerifyOptions,
+function jsonWebToken<
+  Payload extends Record<string, unknown>,
+  UserData extends Record<string, unknown>
+>(
+  options: AuthJsonWebTokenParams<Payload, UserData> &
+    JWTVerifyOptions<Payload>,
   status?: number
 ): Handler<UserData> {
   status = status || StatusCode.Unauthorized;
   const scheme = options.scheme?.toLowerCase() || "bearer";
   const jwt = options.jwt;
-  const donotReturn = options.donotReturn;
-  const acceptPayload = options.payload;
+  const acceptJWT = options.acceptJWT;
   return async function (pr: ProcessedRequest & UserData) {
+    pr.status(status);
     const authorizationHeader = pr.request.headers.get("Authorization");
     if (authorizationHeader) {
       const [hScheme, hToken] = authorizationHeader.split(" ").filter(Boolean);
       const schemesMatch = hScheme.toLowerCase() === scheme;
       if (schemesMatch) {
-        const verifyOptions: JWTVerifyOptions = {
+        const verifyOptions: JWTVerifyOptions<Payload> = {
           expLeeway: options.expLeeway,
           nbfLeeway: options.nbfLeeway,
           audience: options.audience,
           predicates: options.predicates,
         };
         const jwtResult = await jwt.verify(hToken, verifyOptions);
-        const payload = jwtResult.payload;
-        let error = null;
         switch (jwtResult.status) {
           case JWTStatus.EXPIRED:
-            error = "token expired";
+            jwtResult.error = new Error("token expired");
             break;
           case JWTStatus.NOT_YET:
-            error = "token not yet valid";
+            jwtResult.error = new Error("token not valid yet");
             break;
           case JWTStatus.ERROR:
           case JWTStatus.INVALID:
-            error = "token invalid";
+            jwtResult.error = new Error("invalid token");
             break;
         }
-        if (payload == null) {
-          if (donotReturn) {
-            pr.status(status);
-            return;
-          } else if (error) {
-            return pr.status(status).json({ error: error || "token invalid" });
-          } else {
-            return pr.end(status);
-          }
-        }
-        if (acceptPayload) {
-          let result = acceptPayload(payload, pr);
+        let result = acceptJWT(jwtResult, pr);
+        if (result) {
           if (result instanceof Promise) result = await result;
-          if (!result) {
-            return pr.status(status).json({ error: "token rejected" });
-          }
+          if (result instanceof Response) return result;
         }
+        pr.status(200);
       }
     }
   };
 }
 
-export type AuthCookieFn<UserData> = (
-  cookie: CookieValue,
-  pr: ProcessedRequest & UserData
-) => boolean | Promise<boolean>;
+export type AuthCookieFn<
+  Payload extends Record<string, unknown>,
+  UserData extends Record<string, unknown>
+> = (cookie: Payload, pr: ProcessedRequest & UserData) => HandlerResult;
 
-export type AuthCookieParams<UserData extends Record<string, unknown>> = {
+export type AuthCookieParams<
+  Payload extends Record<string, unknown>,
+  UserData extends Record<string, unknown>
+> = {
   name: string;
-  cookie: CookieValue | AuthCookieFn<UserData>;
-  donotReturn?: boolean;
+  secret?: string;
+  acceptPayload: AuthCookieFn<Payload, UserData>;
 };
 
-function cookie<UserData extends Record<string, unknown>>(
-  options: AuthCookieParams<UserData>,
+function signedCookie<
+  Payload extends Record<string, unknown>,
+  UserData extends Record<string, unknown>
+>(
+  options: AuthCookieParams<Payload, UserData>,
   status?: number
 ): Handler<UserData> {
   const cookieName = options.name;
-  const acceptCookie = options.cookie;
-  const donotReturn = options.donotReturn;
+  const cookieSecret = options.secret;
+  const acceptPayload = options.acceptPayload;
+  if (!cookieSecret) {
+    throw new RouterError("null secret key");
+  }
   status = status || StatusCode.Unauthorized;
   return async function (pr: ProcessedRequest & UserData) {
-    const cookie = pr.cookies && pr.cookies[cookieName];
-    if (cookie != null) {
-      if (typeof acceptCookie === "function") {
-        let result = acceptCookie(cookie, pr);
-        if (result instanceof Promise) result = await result;
-        if (result) {
-          return;
-        }
-      } else if (cookie === acceptCookie) {
-        return;
-      }
-      return;
+    pr.status(status);
+    const cookies = await pr.signedCookies<Payload>([cookieName], {
+      secret: cookieSecret,
+    });
+    const cookie = cookies[cookieName];
+    if (cookie == null) return pr.end();
+    let result = acceptPayload(cookie, pr);
+    if (result) {
+      if (result instanceof Promise) result = await result;
+      if (result instanceof Response) return result;
     }
-    if (donotReturn) {
-      pr.status(status);
-    } else {
-      return pr.end(status);
-    }
+    pr.status(200);
   };
 }
 
@@ -249,8 +218,8 @@ export const auth = {
   basic,
   apiKey,
   bearerToken,
-  jsonwebtoken,
-  cookie,
+  jsonWebToken,
+  signedCookie,
 };
 
 export default auth;
