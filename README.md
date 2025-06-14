@@ -148,7 +148,7 @@ There are 5 types of handlers:
 > **Catcher**:
 > The catch handlers are onnly called when uncaught errors are encountered during request handling. Use them to handle errors.
 
-## 🏆 The ProcessedRequest aka type ProRequest
+## 🏆 The `ProcessedRequest` type alias `ProRequest`
 
 The `ProcessedRequest` class will be created when handling incoming requests and passed to handlers in subsequent calls.
 It takes a `<UserData>` type template parameter which is used to extend the type to include custom properties. Eg. `type UserData = { session?: Session }`.
@@ -434,4 +434,4 @@ See [LICENSE](/LICENSE) for details.
 
 ## 🪽 Thank You!
 
-Dont forget to show your support by giving a star on github.
+Dont forget to show your support by giving a star on [GitHub](https://github.com/nati-esh-zed/trie--http-router).

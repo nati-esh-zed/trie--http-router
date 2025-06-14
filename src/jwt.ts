@@ -1,4 +1,4 @@
-import jwt, { type JwtPayload } from "npm:jsonwebtoken@9.0.2";
+import { sign, verify, type JwtPayload } from "npm:jsonwebtoken@9.0.2";
 
 export enum JWTStatus {
   ERROR = -1,
@@ -40,15 +40,15 @@ export class JWT {
   }
 
   sign(payload: object): string {
-    return jwt.sign(payload, this.secret, { algorithm: this.algorithm });
+    return sign(payload, this.secret, { algorithm: this.algorithm });
   }
 
   verify(token: string, options: JWTVerifyOptions = {}): JWTResult {
     try {
-      const payload = jwt.verify(token, this.secret, {
+      const payload = verify(token, this.secret, {
         algorithms: [this.algorithm],
         audience: options.audience,
-      }) as jwt.JwtPayload;
+      }) as JwtPayload;
       const currentTime = Math.floor(Date.now() / 1000);
       // Check expiration (`exp`)
       if (payload.exp && payload.exp + (options.expLeeway || 0) < currentTime) {
